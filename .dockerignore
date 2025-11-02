@@ -1,0 +1,24 @@
+# dependencies
+node_modules
+.pnpm-store
+pnpm-store
+
+# build output
+.next
+out
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# git & editor
+.git
+.gitignore
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
