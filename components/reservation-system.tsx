@@ -10,8 +10,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CalendarDays, Clock, Utensils, X, Check, AlertCircle } from "lucide-react"
 import { format, isSameDay, isAfter, isBefore, endOfDay, addHours } from "date-fns"
 import { es } from "date-fns/locale"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
-type MealType = "normal" | "hipocalorico"
+type MealType = "normal" | "hipocalorico" | "vegetariano"
 type ReservationStatus = "confirmed" | "pending" | "cancelled"
 
 interface Reservation {
@@ -26,6 +35,7 @@ export function ReservationSystem() {
   const [selectedMealType, setSelectedMealType] = useState<MealType>("normal")
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [activeTab, setActiveTab] = useState("new-reservation")
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
 
   // Fecha mínima: 48 horas desde ahora
   const minDate = addHours(new Date(), 48)
@@ -55,7 +65,7 @@ export function ReservationSystem() {
 
     setReservations((prev) => [...prev, ...newReservations])
     setSelectedDates([])
-    setActiveTab("my-reservations")
+    setShowSuccessDialog(true)
   }
 
   const handleCancelReservation = (id: string) => {
@@ -177,8 +187,14 @@ export function ReservationSystem() {
                       </SelectItem>
                       <SelectItem value="hipocalorico">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-accent rounded-full"></div>
+                          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                           Almuerzo Hipocalórico
+                        </div>
+                      </SelectItem>
+					  <SelectItem value="vegetariano">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                          Almuerzo Vegetariano
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -193,9 +209,20 @@ export function ReservationSystem() {
                         <span>Fechas seleccionadas:</span>
                         <span className="font-medium">{selectedDates.length}</span>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex justify-between items-center">
                         <span>Tipo de almuerzo:</span>
-                        <span className="font-medium capitalize">{selectedMealType}</span>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-3 h-3 rounded-full ${
+                              selectedMealType === "normal"
+                                ? "bg-primary"
+                                : selectedMealType === "hipocalorico"
+                                ? "bg-green-500"
+                                : "bg-orange-500"
+                            }`}
+                          ></div>
+                          <span className="font-medium capitalize">{selectedMealType}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -255,10 +282,19 @@ export function ReservationSystem() {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <div
                               className={`w-2 h-2 rounded-full ${
-                                reservation.mealType === "normal" ? "bg-primary" : "bg-accent"
+                                reservation.mealType === "normal"
+                                  ? "bg-primary"
+                                  : reservation.mealType === "hipocalorico"
+                                  ? "bg-green-500"
+                                  : "bg-orange-500"
                               }`}
                             ></div>
-                            Almuerzo {reservation.mealType === "normal" ? "Normal" : "Hipocalórico"}
+                            Almuerzo{" "}
+                            {reservation.mealType === "normal"
+                              ? "Normal"
+                              : reservation.mealType === "hipocalorico"
+                              ? "Hipocalórico"
+                              : "Vegetariano"}
                           </div>
                         </div>
                       </div>
@@ -283,6 +319,22 @@ export function ReservationSystem() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex justify-center items-center w-12 h-12 mx-auto bg-green-100 rounded-full">
+              <Check className="h-8 w-8 text-green-600" />
+            </div>
+            <AlertDialogTitle className="text-center pt-4">Tus reservas se han realizado con exito</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowSuccessDialog(false)} className="w-full">
+              Aceptar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
