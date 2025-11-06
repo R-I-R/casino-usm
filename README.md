@@ -4,7 +4,7 @@ Aplicación Next.js (App Router) con Tailwind CSS y componentes Radix UI.
 
 Este repositorio contiene la aplicación front-end de Casino USM (Next.js 15, React 19).
 
-## Resumen rápido
+## Resumen
 
 - Framework: Next.js
 - React: 19
