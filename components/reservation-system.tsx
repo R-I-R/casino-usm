@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { MenuModal } from "./menu-modal"
 
 type MealType = "normal" | "hipocalorico" | "vegetariano"
 type ReservationStatus = "confirmed" | "pending" | "cancelled"
@@ -36,6 +37,8 @@ export function ReservationSystem() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [activeTab, setActiveTab] = useState("new-reservation")
   const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [reservationToCancel, setReservationToCancel] = useState<string | null>(null)
 
   // Fecha mínima: 48 horas desde ahora
   const minDate = addHours(new Date(), 48)
@@ -43,10 +46,10 @@ export function ReservationSystem() {
   const handleDateSelect = (date: Date | undefined) => {
     if (!date) return
 
-    setSelectedDates((prev) => {
-      const isSelected = prev.some((d) => isSameDay(d, date))
+    setSelectedDates((prev: Date[]) => {
+      const isSelected = prev.some((d: Date) => isSameDay(d, date))
       if (isSelected) {
-        return prev.filter((d) => !isSameDay(d, date))
+        return prev.filter((d: Date) => !isSameDay(d, date))
       } else {
         return [...prev, date].sort((a, b) => a.getTime() - b.getTime())
       }
@@ -56,28 +59,40 @@ export function ReservationSystem() {
   const handleCreateReservation = () => {
     if (selectedDates.length === 0) return
 
-    const newReservations: Reservation[] = selectedDates.map((date) => ({
+    const newReservations: Reservation[] = selectedDates.map((date: Date) => ({
       id: `${Date.now()}-${Math.random()}`,
       date,
       mealType: selectedMealType,
       status: "confirmed" as ReservationStatus,
     }))
 
-    setReservations((prev) => [...prev, ...newReservations])
+    setReservations((prev: Reservation[]) => [...prev, ...newReservations])
     setSelectedDates([])
     setShowSuccessDialog(true)
   }
 
   const handleCancelReservation = (id: string) => {
-    setReservations((prev) => prev.map((res) => (res.id === id ? { ...res, status: "cancelled" } : res)))
+    setReservations((prev: Reservation[]) => prev.map((res: Reservation) => (res.id === id ? { ...res, status: "cancelled" } : res)))
+    setShowCancelDialog(true)
+  }
+
+  const confirmCancelReservation = () => {
+    if (reservationToCancel) {
+      handleCancelReservation(reservationToCancel)
+      setReservationToCancel(null)
+    }
+  }
+
+  const openCancelConfirmation = (id: string) => {
+    setReservationToCancel(id)
   }
 
   const clearSelectedDates = () => {
     setSelectedDates([])
   }
 
-  const activeReservations = reservations.filter((r) => r.status !== "cancelled")
-  const upcomingReservations = activeReservations.filter((r) => isAfter(r.date, new Date()))
+  const activeReservations = reservations.filter((r: Reservation) => r.status !== "cancelled")
+  const upcomingReservations = activeReservations.filter((r: Reservation) => isAfter(r.date, new Date()))
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
@@ -116,15 +131,20 @@ export function ReservationSystem() {
             {/* Calendar Section */}
             <Card>
               <CardHeader>
-                <CardTitle>Seleccionar Fechas</CardTitle>
-                <CardDescription>Puedes seleccionar múltiples días, incluso no consecutivos</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Seleccionar Fechas</CardTitle>
+                    <CardDescription>Puedes seleccionar múltiples días, incluso no consecutivos</CardDescription>
+                  </div>
+                  <MenuModal />
+                </div>
               </CardHeader>
               <CardContent>
                 <Calendar
                   mode="multiple"
                   selected={selectedDates}
-                  onSelect={(dates) => setSelectedDates(dates ?? [])}
-                  disabled={(date) => isBefore(endOfDay(date), minDate)}
+                  onSelect={(dates: Date[] | undefined) => setSelectedDates(dates ?? [])}
+                  disabled={(date: Date) => isBefore(endOfDay(date), minDate)}
                   locale={es}
                   className="rounded-md border"
                 />
@@ -148,7 +168,7 @@ export function ReservationSystem() {
                       </Button>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {selectedDates.map((date, index) => (
+                      {selectedDates.map((date: Date, index: number) => (
                         <Badge key={index} variant="secondary" className="flex items-center gap-1">
                           {format(date, "EEE dd/MM", { locale: es })}
                           <button
@@ -305,7 +325,7 @@ export function ReservationSystem() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleCancelReservation(reservation.id)}
+                          onClick={() => openCancelConfirmation(reservation.id)}
                           className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
                           <X className="h-4 w-4" />
@@ -331,6 +351,44 @@ export function ReservationSystem() {
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setShowSuccessDialog(false)} className="w-full">
               Aceptar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="flex justify-center items-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+              <X className="h-8 w-8 text-red-600" />
+            </div>
+            <AlertDialogTitle className="text-center pt-4">La reserva ha sido cancelada</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowCancelDialog(false)} className="w-full">
+              Aceptar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!reservationToCancel} onOpenChange={(open) => !open && setReservationToCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de que quieres cancelar esta reserva?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. La reserva se marcará como cancelada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction variant="outline" onClick={() => setReservationToCancel(null)}>
+              Volver
+            </AlertDialogAction>
+            <AlertDialogAction
+              onClick={confirmCancelReservation}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Cancelar Reserva
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
